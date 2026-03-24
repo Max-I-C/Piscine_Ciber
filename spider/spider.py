@@ -13,14 +13,18 @@ visited = set()
 def args_manager():
     parser = argparse.ArgumentParser(description="Spider")
     parser.add_argument(
+        "url",
+        type=str,
+        help="Place the url of the website you want to scrap pls"
+    )
+    parser.add_argument(
         "-p", "--path",
         type=str,
         help="To indicate a path for saving the images"
     )
     parser.add_argument(
         "-r", "--recursive",
-        type=bool,
-        default=False,
+        action="store_true",   
         help="Turn to program in recurssive mode"
     )
     parser.add_argument(
@@ -69,12 +73,11 @@ def curl(path, url, recurssif, layer):
 
 def main():
     args = args_manager()
-    print(args.recursive)
     if args.path is not None and not exists(args.path):
         os.mkdir(args.path)
     elif (not exists(".data") and args.path is None):
         os.mkdir('.data')
-    curl(args.path, 'https://www.42madrid.com/', args.recursive, args.layer)
+    curl(args.path, args.url, args.recursive, args.layer)
 
 if(__name__ == "__main__"):
     main()
