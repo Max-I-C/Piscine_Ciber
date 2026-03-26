@@ -2,6 +2,9 @@ import os
 import argparse
 import string
 import time
+import hmac
+import hashlib
+import binascii
 from cryptography.fernet import Fernet
 
 def args_mngt():
@@ -27,12 +30,12 @@ def valid_hexa_key(hexadecimal_key):
     print(f"key -> {key}")
     token = f.encrypt(hexadecimal_key.encode())
     print(f"Crypted : {token}")
-    files = [".key", "ft_opt.key"]
+    files = ["master.key", "ft_otp.key"]
     
     try:
         for file in files:
             create_file = open(file ,'wb')
-            if (file == "key.txt"):
+            if (file == "master.key"):
                 create_file.write(key)
             else:
                 create_file.write(token)
@@ -43,9 +46,8 @@ def valid_hexa_key(hexadecimal_key):
 def extract_from_file(original_file):
     try:
         with open(original_file) as  file:
-            file = open(original_file, 'r')
-            hexadecimal_key = file.read()
-            print(hexadecimal_key)
+            hexadecimal_key = file.read().strip()
+            #print(hexadecimal_key)
             file.close()
     except Exception as e:
         print("[ERROR], {e}")
@@ -61,22 +63,41 @@ def encrypte(hexadecimal_key):
         print(["[ERROR], The key is not hexadecimal or is not 64"])
     
             
-def generate_key(base_key):
+def generate_key(base_key_encrypted):
     print("# ----- key generation scenario ----- #")
     # 1. Recuperer timestamp 
     timestamp = time.time()
     # 2. Le diviser par 30
-    timeInterval = timestamp / 30 
+    timeInterval = int(timestamp // 30)
+    #print(timeInterval) 
     # 3. Utiliser cette valeur dans le HMAC
     # 3.1 Recuperer la clé
     try:
-        with open(base_key) as file:
-            file = open(base_key, 'r')
-            key = file.read()
-            print(key)
-            file.close()
+        with open(base_key_encrypted) as file:
+            key_encrypted = file.read().strip()
+            #print(key)
+        # DECHIFFRE LA CLE 
+        with open("master.key") as file:
+            key_decode = file.read().strip()
+            #print(key_decode)
+        f = Fernet(key_decode.encode())
+        decoded_key = f.decrypt(key_encrypted.encode())
+        # 3.2 Transfo de la cle hexa en bytes
+        key_bytes = binascii.unhexlify(decoded_key)
+        # 3.3 Convertir le compteur en 8bytes
+        counter_bytes = timeInterval.to_bytes(8,  'big')
+        hmac_hash = hmac.new(key_bytes, counter_bytes, hashlib.sha1).digest()
+        offset = hmac_hash[-1] & 0x0F
+        code = (
+            ((hmac_hash[offset] & 0x7f) << 24) |
+            ((hmac_hash[offset + 1] & 0xff) << 16) |
+            ((hmac_hash[offset + 2] & 0xff) << 8) |
+            (hmac_hash[offset + 3] & 0xff) 
+        )
+        otp = code % 1_000_000
+        print(f"OTP code: {str(otp).zfill(6)}")
     except Exception as e:
-        print("[ERROR], {e}")
+        print(f"[ERROR], {e}")
 
     # 4. Appliquer le HOTP algo 
     # 5. Reduire a 6 chiffre   
@@ -92,4 +113,4 @@ def main():
     return
 
 if (__name__ == "__main__"):
-    main()
+    main() 
