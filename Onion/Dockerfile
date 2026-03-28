@@ -8,8 +8,11 @@ COPY /conf/nginx.conf /etc/nginx/nginx.conf
 COPY /conf/torrc /etc/tor/torrc 
 
 RUN chown -R nginx:nginx /var/www/html
-RUN chown -R tor:tor /var/lib/tor /run/tor && chmod 700 /var/lib/tor /var/lib/tor/hidden_service
+RUN chown -R tor:tor /var/lib/tor /run/tor && chmod 700 /var/lib/tor && chmod 755 /var/lib/tor/hidden_service
 
 VOLUME ["/var/lib/tor/hidden_service"]
 
-CMD ["sh", "-c", "su tor -c 'tor -f /etc/tor/torrc --RunAsDaemon 0' & exec nginx -g 'daemon off;'"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
