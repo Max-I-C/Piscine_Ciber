@@ -92,6 +92,6 @@ int verif_input()
 int main()
 {
     if(verif_input())
-        return(printf("Nop\n"), 1);
-    return(printf("Good job\n"), 0);
+        return(printf("Nope.\n"), 1);
+    return(printf("Good job.\n"), 0);
 }

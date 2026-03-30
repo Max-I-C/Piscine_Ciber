@@ -14,6 +14,6 @@ int verif_input()
 int main(void)
 {
     if(verif_input())
-        return(printf("nop\n"), 1);
-    return(printf("Good job\n"), 0);
+        return(printf("Nope.\n"), 1);
+    return(printf("Good job.\n"), 0);
 }
