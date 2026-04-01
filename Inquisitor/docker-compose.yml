@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  server:
+    image: panubo/vsftpd:latest
+    container_name: server
+    environment:
+      - FTP_USER=user42
+      - FTP_PASS=password42 # Faut verif le nom de la variable dans la doc de l'image pcq pas sure
+    networks:
+      inquisitor:
+        ipv4_address: 172.20.0.2
+
+  client:
+    image: jlesage/filezilla
+    container_name: client
+    networks:
+      inquisitor:
+        ipv4_address: 172.20.0.3
+
+  inquisitor:
+    build: .
+    container_name: inquisitor
+    cap_add:
+      - NET_ADMIN  # INDISPENSABLE pour l'ARP Spoofing +- capter a revoir
+    networks:
+      inquisitor:
+        ipv4_address: 172.20.0.4
+    stdin_open: true 
+    tty: true
+
+networks:
+  inquisitor:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
