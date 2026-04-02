@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  server:
+  server: 
     image: panubo/vsftpd:latest
     container_name: server
     environment:
