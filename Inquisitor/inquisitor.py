@@ -2,6 +2,7 @@
 import argparse
 import sys
 import ipaddress
+import re
 
 class Inquisitor():
     def __init__(self, argument):
@@ -12,9 +13,16 @@ class Inquisitor():
         print(f"Constructor, inquisition set : {self.mac_addr_host} + {self.ip_addr_host} + {self.mac_addr_serv} + {self.ip_addr_serv}")
 
     def verify_addr(self):
+        pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
         try:
             ipaddress.IPv4Address(self.ip_addr_host)
             ipaddress.IPv4Address(self.ip_addr_serv)
+            print("Ipv4 are valid!")
+            if not re.match(pattern, self.mac_addr_host) or not re.match(pattern, self.mac_addr_serv):
+                print("ERROR")
+                return
+            print("MacAddress are valid!")
+            
         except Exception as e:
             print(f"[ERROR], {e}")
 
@@ -28,6 +36,7 @@ def main():
         print("[ERROR, not enought args]")
         return
     inquisition = Inquisitor(sys.argv)
+    inquisition.verify_addr()
     
 
 if (__name__ == "__main__"):
