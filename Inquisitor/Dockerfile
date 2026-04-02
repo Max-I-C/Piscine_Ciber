@@ -1,7 +1,7 @@
 FROM python:3
 
 RUN apt-get -y update \
-    && pip install scapy
+    && pip install scapy 
 
 WORKDIR /usr/src/app
 

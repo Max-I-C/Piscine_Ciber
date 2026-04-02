@@ -19,6 +19,7 @@ services:
   inquisitor:
     build: .
     container_name: inquisitor
+    privileged: true
     cap_add:
       - NET_ADMIN  # INDISPENSABLE pour l'ARP Spoofing +- capter a revoir
     networks:
