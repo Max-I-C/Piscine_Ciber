@@ -1,10 +1,9 @@
 services:
   server: 
-    image: panubo/vsftpd:latest
+    image: delfer/alpine-ftp-server
     container_name: server
     environment:
-      - FTP_USER=user42
-      - FTP_PASS=password42 # Faut verif le nom de la variable dans la doc de l'image pcq pas sure
+      - USERS=user42|password42
     networks:
       inquisitor:
         ipv4_address: 172.20.0.2
