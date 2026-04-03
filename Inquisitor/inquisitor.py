@@ -4,7 +4,7 @@ import sys
 import ipaddress
 import re
 import time
-from scapy.all import ARP, send, sniff, TCP, Raw
+from scapy.all import ARP, send, sniff, TCP, Raw, Ether
 
 class Inquisitor():
     def __init__(self, argument):
